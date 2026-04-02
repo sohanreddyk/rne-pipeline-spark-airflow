@@ -4,3 +4,21 @@
 
 .python-version
 pyproject.toml
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+spark_jobs/__pycache__/
+spark_jobs/*.pyc
+spark_jobs/*.pyo
+spark_jobs/*.pyd
+spark_jobs/.Python
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+dags/__pycache__/
+
+.DS_Store

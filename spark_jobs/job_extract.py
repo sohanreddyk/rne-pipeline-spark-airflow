@@ -36,3 +36,5 @@ spark-submit \
   --jars "<path_pour_ton_postgresql_jar>" \
   job_extract.py
 """
+
+# Download du driver JDBC PostgreSQL : https://jdbc.postgresql.org/download.html
