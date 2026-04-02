@@ -25,3 +25,14 @@ def run_extract():
 
 if __name__ == "__main__":
     run_extract()
+
+""" Pour tester localement, vous pouvez éxecuter :
+SPARK_MASTER="local[*]" \
+
+HDFS_NAMENODE="file:///tmp/rne_test" \
+POSTGRES_HOST=localhost \
+POSTGRES_PORT=5433 \
+spark-submit \
+  --jars "<path_pour_ton_postgresql_jar>" \
+  job_extract.py
+"""
