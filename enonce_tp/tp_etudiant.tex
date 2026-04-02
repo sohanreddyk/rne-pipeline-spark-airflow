@@ -1,0 +1,937 @@
+\documentclass[11pt,a4paper]{article}
+
+% ── Encodage & langue ─────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% ── Mise en page ──────────────────────────────────────────────────────────────
+\usepackage[top=2.2cm, bottom=2.2cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+
+% ── Typo ──────────────────────────────────────────────────────────────────────
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% ── Couleurs & boîtes ─────────────────────────────────────────────────────────
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable, listings}
+
+\definecolor{bleu}{RGB}{30, 80, 160}
+\definecolor{vertTP}{RGB}{0, 120, 80}
+\definecolor{orangeHint}{RGB}{200, 100, 0}
+\definecolor{griscode}{RGB}{248, 248, 248}
+\definecolor{rougeErr}{RGB}{180, 30, 30}
+
+\newtcolorbox{objectif}{
+  colback=bleu!8, colframe=bleu, fonttitle=\bfseries,
+  title=Objectif, breakable
+}
+\newtcolorbox{exercice}[1]{
+  colback=vertTP!6, colframe=vertTP, fonttitle=\bfseries,
+  title={Exercice #1}, breakable
+}
+\newtcolorbox{hint}{
+  colback=orangeHint!8, colframe=orangeHint, fonttitle=\bfseries\small,
+  title={Aide}, breakable
+}
+\newtcolorbox{validation}{
+  colback=gray!8, colframe=gray!60, fonttitle=\bfseries,
+  title={Validation}, breakable
+}
+\newtcolorbox{attention}{
+  colback=rougeErr!8, colframe=rougeErr, fonttitle=\bfseries,
+  title={Attention}, breakable
+}
+
+% ── Code ──────────────────────────────────────────────────────────────────────
+\usepackage{listings}
+
+\lstdefinestyle{python}{
+  language=Python,
+  backgroundcolor=\color{griscode},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{bleu}\bfseries,
+  stringstyle=\color{vertTP},
+  commentstyle=\color{gray!70}\itshape,
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=8pt,
+  breaklines=true,
+  showstringspaces=false,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  tabsize=4,
+  morekeywords={as, with, from, import, None, True, False},
+  literate={é}{{\'{e}}}1 {è}{{\`{e}}}1 {ê}{{\^{e}}}1 {à}{{\`{a}}}1
+           {â}{{\^{a}}}1 {ù}{{\`{u}}}1 {î}{{\^{i}}}1 {ô}{{\^{o}}}1
+           {ç}{{\c{c}}}1 {→}{{$\rightarrow$}}1
+}
+\lstdefinestyle{bash}{
+  language=bash,
+  backgroundcolor=\color{griscode},
+  basicstyle=\ttfamily\footnotesize\color{black},
+  keywordstyle=\color{bleu},
+  commentstyle=\color{gray!70}\itshape,
+  breaklines=true,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  numbers=none,
+  showstringspaces=false,
+}
+\lstset{style=python}
+
+% ── Titres ────────────────────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\color{bleu}}{}{0em}{\thesection\quad}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{bleu!80}}{}{0em}{\thesubsection\quad}
+
+% ── Diagrammes ────────────────────────────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+
+% ── En-tête / pied ────────────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\textcolor{bleu}{\textbf{Pipeline ETL — Répertoire National des Élus}}}
+\rhead{\small\textcolor{gray}{BAC5 — Data Engineering}}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=bleu, urlcolor=bleu}
+
+% =============================================================================
+\begin{document}
+
+% ── Page de titre ─────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\LARGE\bfseries\color{bleu} Travaux Pratiques\\[0.4em]
+   Pipeline ETL — Répertoire National des Élus\par}
+  \vspace{0.8cm}
+  {\large\color{gray} Apache Spark \textbullet{} HDFS \textbullet{} Apache Airflow \textbullet{} PostgreSQL\par}
+  \vspace{2.5cm}
+\begin{center}
+  
+  \begin{tikzpicture}[scale=0.9, transform shape,
+    node distance=1.6cm,
+    box/.style={rectangle, rounded corners=4pt, draw, minimum width=2.6cm,
+                minimum height=1cm, align=center, font=\small\bfseries},
+    arr/.style={-Stealth, thick, color=bleu!60},
+  ]
+    \node[box, fill=bleu!12, draw=bleu]    (pg)  {PostgreSQL\\{\tiny 12 tables RNE}};
+    \node[box, fill=orange!15, draw=orange, right=of pg]  (raw) {HDFS\\{\tiny /rne/raw}};
+    \node[box, fill=orange!22, draw=orange!80, right=of raw] (ref) {HDFS\\{\tiny /rne/refined}};
+    \node[box, fill=orange!30, draw=orange!60, right=of ref] (gld) {HDFS\\{\tiny /rne/gold}};
+    \node[box, fill=bleu!12, draw=bleu, right=of gld]  (pgout) {PostgreSQL\\{\tiny 4 agrégations}};
+
+    \draw[arr] (pg)  -- node[above,font=\tiny\bfseries]{Extract}   (raw);
+    \draw[arr] (raw) -- node[above,font=\tiny\bfseries]{Transform} (ref);
+    \draw[arr] (ref) -- node[above,font=\tiny\bfseries]{Aggregate} (gld);
+    \draw[arr] (gld) -- node[above,font=\tiny\bfseries]{Write}     (pgout);
+
+    \node[draw=vertTP, dashed, rounded corners, fit=(pg)(pgout),
+          inner sep=12pt,
+          label={[font=\small\bfseries\color{vertTP}]above:Airflow DAG — orchestration}] {};
+  \end{tikzpicture}
+\end{center}
+
+  \vspace{2.5cm}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Durée}   & 3h \\
+    \textbf{Données} & Répertoire National des Élus — data.gouv.fr \\
+    \textbf{Stack}   & Python 3.12 · PySpark 3.5 · Airflow 2.x · PostgreSQL 15 \\
+    \bottomrule
+  \end{tabular}
+\end{titlepage}
+
+% \tableofcontents
+\newpage
+
+% =============================================================================
+\section{Contexte et objectifs}
+% =============================================================================
+
+Le \textbf{Répertoire National des Élus (RNE)} est un jeu de données publié par le Ministère de l'Intérieur sur \texttt{data.gouv.fr}. Il recense l'ensemble des mandats électoraux en France : maires, conseillers municipaux, députés, sénateurs, etc.
+
+Vous allez construire un \textbf{pipeline ETL complet} en 4 étapes :
+\begin{enumerate}
+  \item \textbf{Extract} — lire les 12 tables PostgreSQL et les écrire en Parquet sur HDFS ;
+  \item \textbf{Transform} — unifier les 12 tables en un seul DataFrame \texttt{elus\_unified} ;
+  \item \textbf{Aggregate} — calculer 4 agrégations analytiques et les écrire dans PostgreSQL ;
+  \item \textbf{Orchestrate} — assembler le tout dans un DAG Airflow.
+\end{enumerate}
+
+\subsection*{Questions analytiques}
+
+\begin{center}
+\begin{tabular}{clll}
+  \toprule
+  & \textbf{Question} & \textbf{Table} & \textbf{Graphique} \\
+  \midrule
+  Q1 & Répartition H/F par type de mandat       & \texttt{agg\_parite}     & Barres empilées \\
+  Q2 & CSP dominantes par type de mandat         & \texttt{agg\_csp}        & Treemap \\
+  Q3 & Durée moyenne de mandat par région        & \texttt{agg\_anciennete} & Carte choroplèthe \\
+  Q5 & Distribution d'âge par type de mandat     & \texttt{agg\_age}        & Boîte à moustaches \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% =============================================================================
+\section{Structure du projet}
+% =============================================================================
+
+Fichiers fournis (\textcolor{gray}{gris}) et fichiers à créer (\textcolor{vertTP}{\textbf{vert}}) :
+
+\begin{lstlisting}[style=bash, numbers=none]
+.
+├── dags/
+│   └── rne_pipeline.py            # (à créer) DAG Airflow
+├── infra/
+│   ├── docker-compose.yml         # fourni
+│   ├── init-postgres.sql          # fourni — DDL des 12 tables
+│   └── migrate_csv_to_postgres.py # fourni — chargement des CSV
+├── rep_national_elus/
+│   └── *.csv                      # 12 fichiers CSV
+└── spark_jobs/
+    ├── __init__.py                # fourni (vide)
+    ├── config.py                  # fourni — variables + build_spark()
+    ├── job_extract.py             # (à créer)
+    ├── job_transform.py           # (à créer)
+    └── job_aggregate.py           # (à créer)
+\end{lstlisting}
+
+\subsection*{Ce que contient \texttt{config.py}}
+
+Tout ce dont vous avez besoin est déjà défini dans \texttt{config.py} — vous n'avez qu'à importer :
+
+\begin{lstlisting}
+# Connexion PostgreSQL
+JDBC_URL    # url jdbc:postgresql://...
+JDBC_PROPS  # {"user": ..., "password": ..., "driver": ...}
+
+# Chemins HDFS
+HDFS_RAW      # hdfs://namenode:9000/rne/raw
+HDFS_REFINED  # hdfs://namenode:9000/rne/refined
+HDFS_GOLD     # hdfs://namenode:9000/rne/gold
+
+# Listes de tables
+TABLES_SOURCES  # liste des 12 noms de tables
+TABLES_AGG      # ["agg_parite", "agg_csp", "agg_anciennete", "agg_age"]
+TABLE_SPECS     # mapping géographique (voir Exercice 2)
+
+# Fonction utilitaire
+build_spark(app_name)  # crée et retourne une SparkSession configurée
+\end{lstlisting}
+
+% =============================================================================
+\section{Démarrage de l'infrastructure}
+% =============================================================================
+
+\begin{objectif}
+Lancer la stack Docker et vérifier que PostgreSQL est chargé avant d'écrire le moindre code.
+\end{objectif}
+
+Depuis le dossier \texttt{infra/} :
+\begin{lstlisting}[style=bash, numbers=none]
+docker compose up -d
+\end{lstlisting}
+
+\begin{attention}
+Le service \texttt{init-db} charge automatiquement les 12 CSV dans PostgreSQL au premier démarrage. Cette opération prend \textbf{5 à 10 minutes} (environ 485 000 lignes). Attendez que le service soit \texttt{exited (0)} avant de continuer.
+\end{attention}
+
+Vérifiez :
+\begin{lstlisting}[style=bash, numbers=none]
+docker compose logs init-db | tail -5
+\end{lstlisting}
+
+\subsection*{Interfaces disponibles}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Service}  & \textbf{URL}                       & \textbf{Accès} \\
+  \midrule
+  Airflow UI        & \texttt{http://localhost:8080}      & admin / admin \\
+  Spark Master UI   & \texttt{http://localhost:8090}      & — \\
+  HDFS NameNode UI  & \texttt{http://localhost:9870}      & — \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% =============================================================================
+\section{Exercice 1 — Extraction PostgreSQL \texorpdfstring{$\rightarrow$}{→} HDFS}
+% =============================================================================
+
+\textbf{Fichier :} \texttt{spark\_jobs/job\_extract.py}
+
+\begin{objectif}
+Lire les 12 tables du schéma \texttt{rne} depuis PostgreSQL via JDBC et écrire chaque table en Parquet sur HDFS dans la zone \texttt{raw}.
+\end{objectif}
+
+\begin{lstlisting}
+import logging
+
+from config import HDFS_RAW, JDBC_PROPS, JDBC_URL, TABLES_SOURCES, build_spark
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [extract] %(message)s")
+logger = logging.getLogger(__name__)
+
+
+def run_extract():
+    spark = build_spark("ETL-RNE-Extract")
+    spark.sparkContext.setLogLevel("WARN")
+    try:
+        for table in TABLES_SOURCES:
+            # TODO 1 : Lire la table rne.<table> depuis PostgreSQL via JDBC
+            #   Utiliser : spark.read.jdbc(url=..., table=..., properties=...)
+            df = ...
+
+            # TODO 2 : Ecrire df en Parquet (mode overwrite) vers HDFS_RAW/<table>
+            ...
+
+            logger.info(f"[extract] {table} -> {df.count():,} lignes")
+        logger.info("[extract] Terminé.")
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    run_extract()
+\end{lstlisting}
+
+\begin{hint}
+\texttt{spark.read.jdbc(url=JDBC\_URL, table="rne.nom\_table", properties=JDBC\_PROPS)} lit une table PostgreSQL.\\
+\texttt{df.write.mode("overwrite").parquet(chemin)} écrit en Parquet.
+\end{hint}
+
+\begin{validation}
+Après exécution, l'interface HDFS (\texttt{http://localhost:9870}) doit afficher 12 dossiers dans \texttt{/rne/raw/}.
+\end{validation}
+
+% =============================================================================
+\section{Exercice 2 — Transformation et unification}
+% =============================================================================
+
+\textbf{Fichier :} \texttt{spark\_jobs/job\_transform.py}
+
+\begin{objectif}
+Lire les 12 tables Parquet depuis la zone \texttt{raw}, les unifier en un seul DataFrame \texttt{elus\_unified} avec un schéma commun, et l'écrire dans la zone \texttt{refined}.
+\end{objectif}
+
+\subsection*{Schéma cible}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Colonne} & \textbf{Type} & \textbf{Remarque} \\
+  \midrule
+  \texttt{type\_mandat}         & string  & ex : "Maire", "Député" \\
+  \texttt{nom}, \texttt{prenom} & string  & \\
+  \texttt{code\_sexe}           & string  & "M" ou "F" \\
+  \texttt{date\_naissance}      & date    & \\
+  \texttt{age}                  & integer & calculé à aujourd'hui \\
+  \texttt{code\_csp}            & integer & \\
+  \texttt{libelle\_csp}         & string  & \\
+  \texttt{date\_debut\_mandat}  & date    & \\
+  \texttt{duree\_mandat\_jours} & integer & calculé à aujourd'hui \\
+  \texttt{code\_departement}    & string  & NULL si absent \\
+  \texttt{libelle\_departement} & string  & NULL si absent \\
+  \texttt{code\_region}         & string  & NULL si absent \\
+  \texttt{libelle\_region}      & string  & NULL si absent \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Pourquoi \texttt{TABLE\_SPECS} ?}
+
+Les 12 tables n'ont pas les mêmes colonnes géographiques. Par exemple, la table \texttt{conseillers\_regionaux} appelle la colonne département \texttt{code\_section\_departementale}, tandis que les maires utilisent \texttt{code\_departement}. \texttt{TABLE\_SPECS} (fourni dans \texttt{config.py}) décrit ce mapping pour chaque table :
+
+\begin{lstlisting}
+# Extrait de config.py — fourni, ne pas réécrire
+TABLE_SPECS = [
+    ("conseillers_municipaux", "Conseiller municipal",
+     {"code_region": None,          # absent -> NULL
+      "libelle_region": None,
+      "code_departement": "code_departement",
+      "libelle_departement": "libelle_departement"}),
+
+    ("conseillers_regionaux", "Conseiller régional",
+     {"code_region": "code_region",
+      "libelle_region": "libelle_region",
+      "code_departement": "code_section_departementale",  # nom different
+      "libelle_departement": "libelle_section_departementale"}),
+    # ... 10 autres tables
+]
+\end{lstlisting}
+
+\subsection*{Squelette à compléter}
+
+\begin{lstlisting}
+import logging
+
+from pyspark.sql import functions as F
+from config import HDFS_RAW, HDFS_REFINED, TABLE_SPECS, build_spark
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [transform] %(message)s")
+logger = logging.getLogger(__name__)
+
+
+def build_unified_df(spark):
+    TODAY = F.current_date()  # IMPORTANT : dans la fonction, pas au niveau module
+    dfs = []
+
+    for table_name, mandat_label, geo in TABLE_SPECS:
+        df = spark.read.parquet(f"{HDFS_RAW}/{table_name}")
+
+        # TODO 1 : Construire la liste `select` avec les colonnes communes :
+        #   F.lit(mandat_label).alias("type_mandat")
+        #   F.col("nom"), F.col("prenom"), F.col("code_sexe")
+        #   F.col("date_naissance")
+        #   age  = datediff(TODAY, date_naissance) / 365.25  cast("integer")
+        #   F.col("code_csp").cast("integer"), F.col("libelle_csp")
+        #   F.col("date_debut_mandat")
+        #   duree_mandat_jours = datediff(TODAY, date_debut_mandat)
+        select = [...]
+
+        # TODO 2 : Pour chaque (col_cible, col_source) dans geo.items() :
+        #   Si col_source existe dans df.columns -> F.col(col_source).alias(col_cible)
+        #   Sinon                                -> F.lit(None).cast("string").alias(col_cible)
+        for col_cible, col_source in geo.items():
+            ...
+
+        dfs.append(df.select(select))
+
+    # TODO 3 : Unifier tous les DataFrames avec unionByName()
+    unified = dfs[0]
+    for df in dfs[1:]:
+        unified = ...
+
+    # TODO 4 : Filtrer les lignes où nom ou date_naissance est NULL
+    return unified.filter(...)
+
+
+def run_transform():
+    spark = build_spark("ETL-RNE-Transform")
+    spark.sparkContext.setLogLevel("WARN")
+    try:
+        unified = build_unified_df(spark)
+        logger.info(f"[transform] {unified.count():,} lignes unifiées")
+        unified.write.mode("overwrite").parquet(f"{HDFS_REFINED}/elus_unified")
+        logger.info("[transform] Terminé.")
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    run_transform()
+\end{lstlisting}
+
+\begin{hint}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{F.datediff(d1, d2)} retourne le nombre de jours entre deux dates.
+  \item \texttt{F.lit(None).cast("string")} crée une colonne NULL de type string.
+  \item \texttt{unionByName()} fusionne deux DataFrames en alignant par \textbf{nom} de colonne.
+  \item \texttt{F.col("nom").isNotNull()} teste si une colonne est non-NULL.
+\end{itemize}
+\end{hint}
+
+\begin{attention}
+\texttt{F.current\_date()} nécessite une SparkSession active. Ne l'appelez \textbf{jamais au niveau du module} (hors de toute fonction) — cela provoque une \texttt{AssertionError} au démarrage du script.
+\end{attention}
+
+% =============================================================================
+\section{Exercice 3 — Agrégations}
+% =============================================================================
+
+\textbf{Fichier :} \texttt{spark\_jobs/job\_aggregate.py}
+
+\begin{objectif}
+Lire \texttt{elus\_unified} depuis la zone \texttt{refined}, calculer les 4 agrégations, et les écrire dans la zone \texttt{gold} (Parquet) \textbf{et} dans PostgreSQL.
+\end{objectif}
+
+\begin{lstlisting}
+import logging
+
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+from config import HDFS_GOLD, HDFS_REFINED, JDBC_PROPS, JDBC_URL, build_spark
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [aggregate] %(message)s")
+logger = logging.getLogger(__name__)
+
+
+def write_to_postgres(df, table_name):
+    """Ecrit df sur HDFS (gold) et dans PostgreSQL."""
+    df.write.mode("overwrite").parquet(f"{HDFS_GOLD}/{table_name}")
+    df.write.mode("overwrite").jdbc(
+        url=JDBC_URL, table=f"rne.{table_name}", properties=JDBC_PROPS
+    )
+    logger.info(f"[aggregate] {table_name} -> {df.count():,} lignes")
+
+
+# Q1 — Répartition H/F par type de mandat
+# Résultat : type_mandat | code_sexe | nb_elus | pct
+# pct = % de ce sexe dans le type_mandat (utiliser Window.partitionBy)
+def agg_parite(df):
+    # TODO
+    ...
+
+
+# Q2 — CSP dominantes par type de mandat
+# Résultat : type_mandat | code_csp | libelle_csp | nb_elus
+# Filtrer libelle_csp NULL. Trier par nb_elus décroissant.
+def agg_csp(df):
+    # TODO
+    ...
+
+
+# Q3 — Durée moyenne de mandat par région
+# Résultat : type_mandat | code_region | libelle_region
+#          | duree_moyenne_jours | duree_moyenne_ans | nb_elus
+# duree_moyenne_ans = duree_moyenne_jours / 365.25
+def agg_anciennete(df):
+    # TODO
+    ...
+
+
+# Q5 — Distribution d'âge par type de mandat
+# Résultat : type_mandat | age_moyen | age_min | age_max
+#          | q1_age | mediane_age | q3_age | nb_elus
+# Utiliser F.percentile_approx("age", 0.25 / 0.50 / 0.75)
+def agg_age(df):
+    # TODO
+    ...
+
+
+def run_aggregate():
+    spark = build_spark("ETL-RNE-Aggregate")
+    spark.sparkContext.setLogLevel("WARN")
+    try:
+        df = spark.read.parquet(f"{HDFS_REFINED}/elus_unified")
+        df.cache()
+        logger.info(f"[aggregate] {df.count():,} lignes lues")
+
+        write_to_postgres(agg_parite(df),     "agg_parite")
+        write_to_postgres(agg_csp(df),        "agg_csp")
+        write_to_postgres(agg_anciennete(df), "agg_anciennete")
+        write_to_postgres(agg_age(df),        "agg_age")
+
+        logger.info("[aggregate] Terminé.")
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    run_aggregate()
+\end{lstlisting}
+
+\begin{hint}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{Window.partitionBy("col")} calcule un total par groupe sans \texttt{groupBy}.
+  \item \texttt{F.percentile\_approx("age", 0.5)} retourne la médiane (efficace sur grand volume).
+  \item \texttt{F.round(expr, 2)} arrondit à 2 décimales.
+  \item \texttt{df.cache()} garde le DataFrame en mémoire pour éviter de le relire 4 fois.
+\end{itemize}
+\end{hint}
+
+% =============================================================================
+\section{Exercice 4 — DAG Airflow}
+\label{sec:dag}
+% =============================================================================
+
+\textbf{Fichier :} \texttt{dags/rne\_pipeline.py}
+
+\begin{objectif}
+Créer un DAG Airflow qui orchestre le pipeline en 5 tâches séquentielles.
+\end{objectif}
+
+\subsection*{Architecture}
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=1.2cm,
+  task/.style={rectangle, rounded corners=3pt, draw=bleu, fill=bleu!10,
+               minimum width=3cm, minimum height=0.8cm,
+               align=center, font=\small\bfseries\color{bleu}},
+  arr/.style={-Stealth, thick, color=bleu!50}
+]
+  \node[task] (t1) {check\_source\\{\tiny PythonOperator}};
+  \node[task, right=of t1] (t2) {job\_extract\\{\tiny SparkSubmit}};
+  \node[task, right=of t2] (t3) {job\_transform\\{\tiny SparkSubmit}};
+  \node[task, right=of t3] (t4) {job\_aggregate\\{\tiny SparkSubmit}};
+  \node[task, right=of t4] (t5) {validate\_output\\{\tiny PythonOperator}};
+  \draw[arr](t1)--(t2); \draw[arr](t2)--(t3);
+  \draw[arr](t3)--(t4); \draw[arr](t4)--(t5);
+\end{tikzpicture}
+\end{center}
+
+\begin{lstlisting}
+import logging
+from datetime import datetime, timedelta
+
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+
+logger = logging.getLogger(__name__)
+
+default_args = {
+    "owner": "bac5",
+    "retries": 1,
+    "retry_delay": timedelta(minutes=2),
+    "email_on_failure": False,
+}
+
+SPARK_CONF = {"spark.executor.memory": "2g", "spark.driver.memory": "1g"}
+
+# TODO 1 : Définir SPARK_KWARGS (dict) utilisé par les 3 SparkSubmitOperator
+#   conn_id  = "spark_default"
+#   jars     = "/opt/airflow/jars/postgresql-42.7.3.jar"
+#   conf     = SPARK_CONF
+#   py_files = les deux fichiers Python à embarquer dans chaque job Spark :
+#              __init__.py et config.py (chemin complet dans /opt/airflow/spark_jobs/)
+SPARK_KWARGS = dict(...)
+
+
+def check_source(**ctx):
+    """Vérifie que les 12 tables sources sont non vides."""
+    import psycopg2
+    from spark_jobs.config import (
+        POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASS,
+        POSTGRES_PORT, POSTGRES_USER, TABLES_SOURCES,
+    )
+    conn = psycopg2.connect(
+        host=POSTGRES_HOST, port=POSTGRES_PORT,
+        user=POSTGRES_USER, password=POSTGRES_PASS, dbname=POSTGRES_DB,
+    )
+    cur = conn.cursor()
+    for table in TABLES_SOURCES:
+        cur.execute(f"SELECT COUNT(*) FROM rne.{table}")
+        count = cur.fetchone()[0]
+        if count == 0:
+            raise ValueError(f"Table rne.{table} vide !")
+        logger.info(f"[check] rne.{table} : {count:,} lignes")
+    conn.close()
+
+
+def validate_output(**ctx):
+    """Vérifie que les 4 tables d'agrégation sont peuplées."""
+    import psycopg2
+    from spark_jobs.config import (
+        POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASS,
+        POSTGRES_PORT, POSTGRES_USER, TABLES_AGG,
+    )
+    conn = psycopg2.connect(
+        host=POSTGRES_HOST, port=POSTGRES_PORT,
+        user=POSTGRES_USER, password=POSTGRES_PASS, dbname=POSTGRES_DB,
+    )
+    cur = conn.cursor()
+    for table in TABLES_AGG:
+        cur.execute(f"SELECT COUNT(*) FROM rne.{table}")
+        count = cur.fetchone()[0]
+        if count == 0:
+            raise ValueError(f"Table rne.{table} vide !")
+        logger.info(f"[validate] rne.{table} : {count:,} lignes")
+    conn.close()
+    logger.info("[validate] Pipeline validé.")
+
+
+# TODO 2 : Définir le DAG
+#   dag_id           = "ETL-DAG-RNE"
+#   start_date       = datetime(2026, 1, 1)
+#   catchup          = False
+#   schedule_interval = None   (déclenchement manuel uniquement)
+#   default_args     = default_args
+#   tags             = ["ETL", "RNE", "Spark"]
+with DAG(...) as dag:
+
+    # TODO 3 : Créer les 5 tâches
+    #
+    #   health_check  = PythonOperator(task_id="check_source",    ...)
+    #   extract_job   = SparkSubmitOperator(task_id="job_extract",
+    #                     application="/opt/airflow/spark_jobs/job_extract.py",
+    #                     name="ETL-RNE-Extract",
+    #                     execution_timeout=timedelta(hours=1),
+    #                     **SPARK_KWARGS)
+    #   transform_job = SparkSubmitOperator(...)  # job_transform.py
+    #   aggregate_job = SparkSubmitOperator(...)  # job_aggregate.py
+    #   verify_output = PythonOperator(task_id="validate_output", ...)
+
+    health_check  = ...
+    extract_job   = ...
+    transform_job = ...
+    aggregate_job = ...
+    verify_output = ...
+
+# TODO 4 : Définir les dépendances séquentielles
+... >> ... >> ... >> ... >> ...
+\end{lstlisting}
+
+\begin{hint}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{py\_files} permet d'envoyer des fichiers Python supplémentaires au job Spark.\\
+        Format : \texttt{"chemin1.py,chemin2.py"} (séparés par une virgule, sans espace).
+  \item \texttt{schedule\_interval=None} : le DAG ne se lance \textbf{jamais automatiquement}.\\
+        Déclenchez-le manuellement via le bouton \textbf{▶ Trigger DAG} dans Airflow.
+  \item \texttt{tags} appartient au constructeur \texttt{DAG(...)}, pas à \texttt{default\_args}.
+\end{itemize}
+\end{hint}
+
+% =============================================================================
+\section{Lancement et validation}
+% =============================================================================
+
+\subsection*{Déclencher le DAG}
+
+Dans Airflow (\texttt{http://localhost:8080}), naviguez vers \texttt{ETL-DAG-RNE} et cliquez sur \textbf{▶ Trigger DAG}, ou depuis le terminal :
+
+\begin{lstlisting}[style=bash, numbers=none]
+docker compose exec airflow-scheduler airflow dags trigger ETL-DAG-RNE
+\end{lstlisting}
+
+\subsection*{Durées typiques}
+
+\begin{center}
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Tâche}               & \textbf{Durée} & \textbf{Ce qu'elle fait} \\
+  \midrule
+  \texttt{check\_source}    & $<$ 5 s      & Compte les lignes dans les 12 tables PG \\
+  \texttt{job\_extract}     & 1 -- 3 min   & Extrait 12 tables PG $\to$ Parquet HDFS \\
+  \texttt{job\_transform}   & 1 -- 2 min   & Unifie en \texttt{elus\_unified} \\
+  \texttt{job\_aggregate}   & 1 -- 2 min   & Calcule et écrit les 4 agrégations \\
+  \texttt{validate\_output} & $<$ 5 s      & Vérifie les 4 tables résultat dans PG \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Vérification finale}
+
+Si toutes les tâches sont vertes, vérifiez les résultats dans PostgreSQL :
+
+\begin{lstlisting}[style=bash, numbers=none]
+-- Parité H/F chez les maires
+SELECT code_sexe, nb_elus, pct FROM rne.agg_parite
+WHERE type_mandat = 'Maire' ORDER BY code_sexe;
+
+-- Top 5 CSP chez les députés
+SELECT libelle_csp, nb_elus FROM rne.agg_csp
+WHERE type_mandat = 'Député' ORDER BY nb_elus DESC LIMIT 5;
+\end{lstlisting}
+
+\subsection*{En cas d'erreur}
+
+Cliquez sur la tâche rouge dans Airflow $\to$ onglet \textbf{Log}, ou :
+\begin{lstlisting}[style=bash, numbers=none]
+docker compose logs airflow-scheduler | grep -i "error\|failed"
+\end{lstlisting}
+
+% =============================================================================
+\section{Exercice 5 — Visualisation avec Tableau Desktop}
+% =============================================================================
+
+\begin{objectif}
+Connecter Tableau Desktop à PostgreSQL, créer 4 visualisations répondant aux questions analytiques, puis assembler un Dashboard interactif.
+\end{objectif}
+
+% ── 5.1 Connexion PostgreSQL ─────────────────────────────────────────────────
+\subsection*{5.1 — Connexion à PostgreSQL}
+
+\begin{enumerate}[leftmargin=*]
+  \item Ouvrez \textbf{Tableau Desktop} et cliquez sur \textbf{Connecter $\to$ À un serveur $\to$ PostgreSQL}.
+  \item Renseignez les paramètres suivants :
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ll}
+  \toprule
+  \textbf{Champ}     & \textbf{Valeur} \\
+  \midrule
+  Serveur            & \texttt{localhost} \\
+  Port               & \texttt{5432} \\
+  Base de données    & \texttt{rne} \\
+  Schéma             & \texttt{rne} \\
+  Nom d'utilisateur  & \texttt{spark} \\
+  Mot de passe       & \texttt{spark} \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{hint}
+Le conteneur PostgreSQL expose le port \texttt{5432} sur \texttt{localhost}. Vérifiez qu'il est bien démarré (\texttt{docker compose ps}) avant d'ouvrir Tableau.
+\end{hint}
+
+\begin{attention}
+Les 4 tables d'agrégation doivent être présentes dans PostgreSQL \textbf{avant} de commencer cet exercice. Assurez-vous que le DAG Airflow (Exercice 4) s'est terminé avec succès.
+\end{attention}
+
+Une fois connecté, faites glisser les 4 tables dans l'espace de travail :
+\texttt{rne.agg\_parite}, \texttt{rne.agg\_csp}, \texttt{rne.agg\_anciennete}, \texttt{rne.agg\_age}.
+
+% ── 5.2 Feuilles de visualisation ───────────────────────────────────────────
+\subsection*{5.2 — Création des feuilles de visualisation}
+
+Créez \textbf{4 feuilles} distinctes, une par question analytique.
+
+\begin{exercice}{5a — Q1 : Répartition H/F par type de mandat (Barres empilées)}
+\textbf{Source :} \texttt{agg\_parite} — colonnes : \texttt{type\_mandat}, \texttt{code\_sexe}, \texttt{nb\_elus}, \texttt{pct}
+
+\begin{enumerate}[leftmargin=*]
+  \item Glissez \texttt{type\_mandat} dans \textbf{Colonnes}.
+  \item Glissez \texttt{nb\_elus} dans \textbf{Lignes}.
+  \item Glissez \texttt{code\_sexe} dans \textbf{Couleur} (volet \textit{Repères}).
+  \item Dans le menu \textbf{Repères}, sélectionnez le type \textbf{Barre}.
+  \item Cliquez sur \textbf{Analyse $\to$ Empiler les repères $\to$ On}.
+  \item Ajoutez \texttt{pct} en \textbf{Étiquette} pour afficher le pourcentage sur chaque barre.
+  \item Renommez la feuille \textit{``Parité H/F par mandat''}.
+\end{enumerate}
+
+\begin{validation}
+Le graphique doit montrer pour chaque type de mandat deux barres empilées (M et F) dont la hauteur totale correspond au nombre total d'élus. Les pourcentages sont visibles sur chaque segment.
+\end{validation}
+\end{exercice}
+
+\begin{exercice}{5b — Q2 : CSP dominantes par type de mandat (Treemap)}
+\textbf{Source :} \texttt{agg\_csp} — colonnes : \texttt{type\_mandat}, \texttt{code\_csp}, \texttt{libelle\_csp}, \texttt{nb\_elus}
+
+\begin{hint}
+Les lignes avec \texttt{libelle\_csp} NULL sont déjà filtrées par le job Spark — la table ne les contient pas.
+\end{hint}
+
+\begin{enumerate}[leftmargin=*]
+  \item Glissez \texttt{nb\_elus} dans \textbf{Taille} et dans \textbf{Couleur}.
+  \item Glissez \texttt{type\_mandat} dans \textbf{Détail}.
+  \item Glissez \texttt{libelle\_csp} dans \textbf{Étiquette}.
+  \item Dans le menu \textbf{Repères}, sélectionnez \textbf{Carré}.
+  \item Choisissez une palette séquentielle (ex. \textit{Bleu-Vert}) via \textbf{Modifier les couleurs}.
+  \item Ajoutez \texttt{type\_mandat} dans \textbf{Filtres} pour explorer mandat par mandat.
+  \item Renommez la feuille \textit{``CSP par mandat''}.
+\end{enumerate}
+
+\begin{validation}
+Chaque rectangle représente une CSP ; les plus grands correspondent aux CSP les plus représentées. Le graphique est lisible sans valeurs NULL.
+\end{validation}
+\end{exercice}
+
+\begin{exercice}{5c — Q3 : Durée moyenne de mandat par région (Carte choroplèthe)}
+\textbf{Source :} \texttt{agg\_anciennete}
+
+\begin{attention}
+La table \texttt{agg\_anciennete} ne contient que les mandats pour lesquels \texttt{libelle\_region} est non NULL. Dans les données RNE, seuls les \textbf{Conseillers régionaux} et les \textbf{Membres d'assemblée} ont une colonne région renseignée — c'est donc la carte pour ces deux types de mandats uniquement.
+\end{attention}
+
+\begin{enumerate}[leftmargin=*]
+  \item Double-cliquez sur \texttt{libelle\_region} — Tableau génère automatiquement une carte de France.
+  \item Glissez \texttt{duree\_moyenne\_ans} dans \textbf{Couleur}.
+  \item Glissez \texttt{nb\_elus} dans \textbf{Taille} (bulles proportionnelles) ou laissez le type \textbf{Rempli} pour une carte choroplèthe pure.
+  \item Ajoutez \texttt{libelle\_region}, \texttt{duree\_moyenne\_ans} et \texttt{duree\_moyenne\_jours} dans \textbf{Info-bulle}.
+  \item Ajoutez \texttt{type\_mandat} dans \textbf{Filtres} et activez \textbf{Afficher le filtre}.
+  \item Renommez la feuille \textit{``Ancienneté par région''}.
+\end{enumerate}
+
+\begin{hint}
+Si Tableau ne reconnaît pas les noms de régions, assignez manuellement le rôle géographique : clic droit sur \texttt{libelle\_region} $\to$ \textbf{Rôle géographique $\to$ État/Province}. Vous pouvez aussi utiliser \texttt{code\_region} (ex. \texttt{11} pour Île-de-France) avec le rôle \textbf{Code d'État/province}.
+\end{hint}
+
+\begin{validation}
+La carte de France est colorée selon \texttt{duree\_moyenne\_ans}. Seules les régions liées aux mandats régionaux ont des données. Un filtre par \texttt{type\_mandat} est accessible.
+\end{validation}
+\end{exercice}
+
+\begin{exercice}{5d — Q5 : Distribution d'âge par type de mandat (Boîte à moustaches)}
+\textbf{Source :} \texttt{agg\_age} — colonnes : \texttt{type\_mandat}, \texttt{age\_moyen}, \texttt{age\_min}, \texttt{age\_max}, \texttt{q1\_age}, \texttt{mediane\_age}, \texttt{q3\_age}, \texttt{nb\_elus}
+
+\begin{enumerate}[leftmargin=*]
+  \item Glissez \texttt{type\_mandat} dans \textbf{Colonnes}.
+  \item Glissez \texttt{age\_moyen} dans \textbf{Lignes}.
+  \item Ajoutez \texttt{q1\_age}, \texttt{mediane\_age}, \texttt{q3\_age}, \texttt{age\_min}, \texttt{age\_max} dans \textbf{Info-bulle}.
+  \item Pour simuler une boîte à moustaches : créez des \textbf{lignes de référence} (menu \textit{Analyse $\to$ Ligne de référence}) pour chaque statistique.
+  \item Affichez \texttt{nb\_elus} dans \textbf{Taille} pour pondérer visuellement chaque type de mandat.
+  \item Renommez la feuille \textit{``Distribution d'âge''}.
+\end{enumerate}
+
+\begin{hint}
+Tableau Desktop ne génère pas de boîte à moustaches native à partir d'une table déjà agrégée (Q1/Q3 précalculés). Utilisez des \textbf{Lignes de référence} ou un graphique de type \textbf{Gantt} en encodant \texttt{q1\_age} sur l'axe Y et \texttt{q3\_age} en taille pour simuler les boîtes.
+\end{hint}
+
+\begin{validation}
+Pour chaque type de mandat : l'âge moyen, le min, le max, Q1, la médiane et Q3 sont visibles. Les mandats sont comparables visuellement.
+\end{validation}
+\end{exercice}
+
+% ── 5.3 Dashboard ────────────────────────────────────────────────────────────
+\subsection*{5.3 — Assemblage du Dashboard}
+
+\begin{exercice}{5e — Dashboard « Analyse des Élus RNE »}
+\begin{enumerate}[leftmargin=*]
+  \item Cliquez sur l'icône \textbf{Nouveau tableau de bord} (en bas de l'interface).
+  \item Définissez la taille à \textbf{1200 $\times$ 800 px} (menu \textit{Taille du tableau de bord}).
+  \item Glissez les 4 feuilles dans la disposition suivante :
+
+\begin{center}
+\begin{tabular}{|p{5.5cm}|p{5.5cm}|}
+  \hline
+  \textit{Parité H/F par mandat} & \textit{CSP par mandat} \\
+  (barre empilée) & (treemap) \\
+  \hline
+  \textit{Ancienneté par région} & \textit{Distribution d'âge} \\
+  (carte) & (boîte à moustaches) \\
+  \hline
+\end{tabular}
+\end{center}
+
+  \item Ajoutez un \textbf{titre} : \textit{``Répertoire National des Élus — Analyse des mandats''}.
+  \item Rendez le filtre \texttt{Type Mandat} (de la feuille \textit{Ancienneté par région}) \textbf{global} : clic droit sur le filtre $\to$ \textbf{Appliquer aux feuilles de calcul $\to$ Toutes utilisant cette source de données}.
+  \item Activez les \textbf{actions de filtre} : cliquer sur un type de mandat dans le graphique \textit{Parité} doit filtrer les autres vues. Menu \textbf{Tableau de bord $\to$ Actions $\to$ Ajouter une action $\to$ Filtre}.
+  \item Renommez le tableau de bord \textit{``Dashboard RNE''}.
+\end{enumerate}
+
+\begin{validation}
+\begin{itemize}[leftmargin=*]
+  \item Les 4 vues sont présentes et lisibles dans le dashboard.
+  \item Le filtre \texttt{Type Mandat} met à jour simultanément toutes les vues.
+  \item Cliquer sur une barre du graphique \textit{Parité} filtre les autres visualisations.
+\end{itemize}
+\end{validation}
+\end{exercice}
+
+% =============================================================================
+\section*{Récapitulatif}
+% =============================================================================
+
+\begin{tcolorbox}[colback=bleu!5, colframe=bleu, fonttitle=\bfseries,
+                  title=Fichiers à rendre]
+\begin{tabular}{ll}
+  \texttt{spark\_jobs/job\_extract.py}   & Extraction PostgreSQL $\to$ HDFS \\
+  \texttt{spark\_jobs/job\_transform.py} & Unification $\to$ \texttt{elus\_unified} \\
+  \texttt{spark\_jobs/job\_aggregate.py} & 4 agrégations $\to$ HDFS + PostgreSQL \\
+  \texttt{dags/rne\_pipeline.py}         & DAG Airflow avec 5 tâches \\
+  \texttt{dashboard\_rne.twbx}           & Workbook Tableau (packaged) avec 4 vues + dashboard \\
+\end{tabular}
+\end{tcolorbox}
+
+\vspace{0.8em}
+\begin{tcolorbox}[colback=vertTP!5, colframe=vertTP, fonttitle=\bfseries,
+                  title=Critères de validation]
+\begin{enumerate}
+  \item Les 5 tâches du DAG sont \textcolor{vertTP}{\textbf{vertes}} dans Airflow.
+  \item Les 4 tables \texttt{agg\_*} sont présentes et non vides dans PostgreSQL.
+  \item Les zones \texttt{/rne/raw}, \texttt{/rne/refined}, \texttt{/rne/gold} existent sur HDFS.
+  \item Le fichier \texttt{.twbx} contient les 4 feuilles de visualisation et le dashboard assemblé.
+  \item Le filtre \texttt{Type Mandat} dans le dashboard est global et interactif.
+\end{enumerate}
+\end{tcolorbox}
+
+\end{document}
