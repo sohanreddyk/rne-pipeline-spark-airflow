@@ -27,6 +27,7 @@ SPARK_KWARGS = dict(
 # Vérifie que les 12 tables sources sont présentes et non vides dans PostgreSQL
 def check_source(**ctx):
     import psycopg2
+
     from spark_jobs.config import (
         POSTGRES_DB,
         POSTGRES_HOST,
@@ -57,6 +58,7 @@ def check_source(**ctx):
 # Vérifie que les 4 tables d'agrégation existent et sont peuplées dans PostgreSQL
 def validate_output(**ctx):
     import psycopg2
+
     from spark_jobs.config import (
         POSTGRES_DB,
         POSTGRES_HOST,
