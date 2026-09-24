@@ -1,171 +1,192 @@
-# TP Ingénierie des Données - Pipeline ETL RNE
+# Data Engineering Lab — RNE ETL Pipeline
 
-Bienvenue dans ce travail pratique sur l'**ingénierie des données** ! Ce projet vous permettra de construire un pipeline ETL (Extract, Transform, Load) complet utilisant Apache Spark, Airflow et PostgreSQL.
+Welcome to this hands-on **data engineering** lab! In this project, you will build a complete ETL (Extract, Transform, Load) pipeline using Apache Spark, Airflow, and PostgreSQL.
 
-##  Vue d'ensemble
+## Overview
 
-Ce TP traite les données du **Répertoire National des Élus (RNE)** français. Vous allez:
+This lab processes data from the French **National Directory of Elected Officials (RNE)**. You will:
 
-1. **Extraire** 12 tables sources de PostgreSQL vers HDFS
-2. **Transformer** et unifier les données en une seule table
-3. **Agréger** les données pour créer des vues analytiques
-4. **Orchestrer** le tout avec Apache Airflow
+1. **Extract** 12 source tables from PostgreSQL into HDFS
+2. **Transform** and unify the data into a single table
+3. **Aggregate** the data to create analytical views
+4. **Orchestrate** the entire workflow with Apache Airflow
 
-Les données couvrent les élus à différents niveaux (maires, députés, conseillers, etc.).
+The data covers elected officials at different levels, including mayors, members of parliament, councilors, and others.
 
-##  Architecture du Pipeline
+## Pipeline Architecture
 
-```
-PostgreSQL (12 tables) 
-    ↓ [Job Extract]
+```text
+PostgreSQL (12 tables)
+    ↓ [Extract Job]
 HDFS (Raw Data)
-    ↓ [Job Transform]
+    ↓ [Transform Job]
 HDFS (Unified Table)
-    ↓ [Job Aggregate]
-PostgreSQL (4 tables agrégées)
+    ↓ [Aggregate Job]
+PostgreSQL (4 aggregated tables)
 ```
 
-### Pipeline Airflow
-```
+### Airflow Pipeline
+
+```text
 check_source → extract_job → transform_job → aggregate_job → validate_output
 ```
 
-##  Structure du projet
+## Project Structure
 
-```
+```text
 TP_ref/
-├── dags/                          # DAGs Airflow
-│   └── rne_pipeline.py           # Pipeline principal ETL
-├── spark_jobs/                    # Jobs Spark
-│   ├── config.py                 # Configuration (chemins, URLs, tables)
-│   ├── job_extract.py            # Extraction PostgreSQL → HDFS
-│   ├── job_transform.py          # Transformation des données
-│   └── job_aggregate.py          # Agrégation et calculs
-├── infra/                         # Infrastructure Docker
-│   ├── docker-compose.yml        # Orchestration des services
-│   ├── Dockerfile.airflow        # Image Airflow personnalisée
-│   ├── Dockerfile.jupyter        # Image Jupyter
-│   ├── init-postgres.sql         # Script d'initialisation DB
-│   ├── migrate_csv_to_postgres.py # Migration CSV → PostgreSQL
-│   └── notebooks/                # Notebooks Jupyter pour exploration
-├── rep_national_elus/            # Données brutes (CSV)
-│   └── elus-*.csv                # 12 fichiers CSV par type d'élus
-├── enonce_tp/                    # Énoncé du TP
-│   └── tp_etudiant.pdf          # Sujet détaillé
-└── requirements.txt              # Dépendances Python
+├── dags/                           # Airflow DAGs
+│   └── rne_pipeline.py             # Main ETL pipeline
+├── spark_jobs/                     # Spark jobs
+│   ├── config.py                   # Configuration (paths, URLs, tables)
+│   ├── job_extract.py              # PostgreSQL → HDFS extraction
+│   ├── job_transform.py            # Data transformation
+│   └── job_aggregate.py            # Aggregation and calculations
+├── infra/                          # Docker infrastructure
+│   ├── docker-compose.yml          # Service orchestration
+│   ├── Dockerfile.airflow          # Custom Airflow image
+│   ├── Dockerfile.jupyter          # Jupyter image
+│   ├── init-postgres.sql           # Database initialization script
+│   ├── migrate_csv_to_postgres.py  # CSV → PostgreSQL migration
+│   └── notebooks/                  # Jupyter notebooks for exploration
+├── rep_national_elus/              # Raw data (CSV)
+│   └── elus-*.csv                  # 12 CSV files by elected-official type
+├── enonce_tp/                      # Lab assignment
+│   └── tp_etudiant.pdf             # Detailed instructions
+└── requirements.txt                # Python dependencies
 ```
 
-##  Prérequis
+## Prerequisites
 
-- **Python 3.10+**
-- **Docker & Docker Compose**
-- **Java 11+** (pour Spark)
-- **~6 GB d'espace disque**
+* **Python 3.10+**
+* **Docker & Docker Compose**
+* **Java 11+** for Spark
+* Around **6 GB of disk space**
 
-## Installation et démarrage
+## Installation and Setup
 
-### 1. Cloner et installer les dépendances
+### 1. Clone the project and install dependencies
 
 ```bash
 cd /Users/mouaad/GoldenCollar/BAC4/TP_ref
 pip install -r requirements.txt
 ```
 
-### 2. Démarrer les services Docker
+### 2. Start the Docker services
 
 ```bash
 cd infra
 docker-compose up -d
 ```
 
-Cela démarre:
-- **PostgreSQL** (port 5432)
-- **Apache Airflow** (port 8080)
-- **Jupyter Notebook** (port 8888)
-- **Hadoop/HDFS** (port 50070)
+This starts:
 
-### 3. Vérifier les services
+* **PostgreSQL** on port 5432
+* **Apache Airflow** on port 8080
+* **Jupyter Notebook** on port 8888
+* **Hadoop/HDFS** on port 50070
+
+### 3. Verify the services
 
 ```bash
 docker-compose ps
 ```
 
-### 4. Charger les données initiales
+### 4. Load the initial data
 
-Une fois PostgreSQL prêt, charger les données CSV:
+Once PostgreSQL is ready, load the CSV data:
 
 ```bash
 python infra/migrate_csv_to_postgres.py
 ```
 
-Cela popule les 12 tables sources dans PostgreSQL.
+This populates the 12 source tables in PostgreSQL.
 
-### 5. Accéder à Airflow
+### 5. Access Airflow
 
-1. Ouvrez http://localhost:8080
-2. Identifiants par défaut: `airflow` / `airflow`
-3. Vous verrez le DAG `ETL-DAG-RNE`
+1. Open `http://localhost:8080`
+2. Default credentials: `airflow` / `airflow`
+3. You should see the DAG named `ETL-DAG-RNE`
 
-##  Exécution du Pipeline
+## Running the Pipeline
 
-### Via l'interface Airflow
+### Through the Airflow UI
 
-1. Allez sur le DAG `ETL-DAG-RNE`
-2. Cliquez sur **"Trigger DAG"**
-3. Suivez l'exécution en temps réel
+1. Open the `ETL-DAG-RNE` DAG
+2. Click **Trigger DAG**
+3. Follow the execution in real time
 
-### Via la ligne de commande
+### Through the command line
 
 ```bash
 docker exec airflow_container airflow dags trigger ETL-DAG-RNE
 ```
 
-##  Étapes du pipeline
+## Pipeline Stages
 
-###  **check_source** (PythonOperator)
-Vérifie que les 12 tables sources existent et ne sont pas vides dans PostgreSQL.
+### `check_source` — PythonOperator
 
-**Tables attendues:**
-- `rne.elus_deputes_dep`
-- `rne.elus_senateurs_sen`
-- `rne.elus_maires_mai`
-- `rne.elus_conseillers_municipaux_cm`
-- `rne.elus_conseillers_departementaux_cd`
-- `rne.elus_conseillers_regionaux_cr`
-- `rne.elus_conseillers_communautaires_epci`
-- `rne.elus_conseillers_darrondissements_ca`
-- `rne.elus_representants_parlement_europeen_rpe`
-- `rne.elus_membres_dune_assemblee_ma`
-- `rne.elus_assemblee_des_francais_de_letranger_afe`
-- `rne.elus_conseillers_des_francais_de_letranger_cons`
+Checks that all 12 source tables exist and are not empty in PostgreSQL.
 
-###  **job_extract** (SparkSubmitOperator)
-Exporte les 12 tables de PostgreSQL vers HDFS en parallèle.
+**Expected tables:**
 
-**Sortie:** Fichiers Parquet dans `/data/raw/`
+* `rne.elus_deputes_dep`
+* `rne.elus_senateurs_sen`
+* `rne.elus_maires_mai`
+* `rne.elus_conseillers_municipaux_cm`
+* `rne.elus_conseillers_departementaux_cd`
+* `rne.elus_conseillers_regionaux_cr`
+* `rne.elus_conseillers_communautaires_epci`
+* `rne.elus_conseillers_darrondissements_ca`
+* `rne.elus_representants_parlement_europeen_rpe`
+* `rne.elus_membres_dune_assemblee_ma`
+* `rne.elus_assemblee_des_francais_de_letranger_afe`
+* `rne.elus_conseillers_des_francais_de_letranger_cons`
 
-###  **job_transform** (SparkSubmitOperator)
-- Unifie les 12 tables en une seule `elus_unified`
-- Normalise les colonnes communes
-- Ajoute la colonne `type_elu` pour identifier le niveau
+### `job_extract` — SparkSubmitOperator
 
-**Sortie:** Parquet `/data/refined/elus_unified/`
+Exports the 12 PostgreSQL tables to HDFS in parallel.
 
-###  **job_aggregate** (SparkSubmitOperator)
-Crée 4 tables agrégées:
-- `nb_elus_par_region` - Nombre d'élus par région
-- `nb_elus_par_departement` - Nombre d'élus par département
-- `gender_distribution` - Répartition par genre
-- `top_communes` - Top 100 communes avec plus d'élus
+**Output:**
 
-**Sortie:** Tables PostgreSQL dans le schéma `rne`
+```text
+/data/raw/
+```
 
-###  **validate_output** (PythonOperator)
-Vérifie que les 4 tables agrégées ont bien été créées et contiennent des données.
+Stored as Parquet files.
 
-##  Configuration
+### `job_transform` — SparkSubmitOperator
 
-Éditez `spark_jobs/config.py` pour modifier:
+* Unifies the 12 tables into a single `elus_unified` table
+* Normalizes common columns
+* Adds a `type_elu` column to identify the elected-official level/type
+
+**Output:**
+
+```text
+/data/refined/elus_unified/
+```
+
+Stored in Parquet format.
+
+### `job_aggregate` — SparkSubmitOperator
+
+Creates 4 aggregated tables:
+
+* `nb_elus_par_region` — number of elected officials per region
+* `nb_elus_par_departement` — number of elected officials per department
+* `gender_distribution` — gender distribution
+* `top_communes` — top 100 municipalities with the most elected officials
+
+**Output:** PostgreSQL tables in the `rne` schema.
+
+### `validate_output` — PythonOperator
+
+Checks that the 4 aggregated tables were successfully created and contain data.
+
+## Configuration
+
+Edit `spark_jobs/config.py` to modify the following settings:
 
 ```python
 # PostgreSQL
@@ -185,83 +206,106 @@ HDFS_GOLD = "/data/gold"
 SPARK_MASTER = "spark://spark:7077"
 ```
 
-## Fichiers importants
+## Important Files
 
-| Fichier | Description |
-|---------|-------------|
-| `dags/rne_pipeline.py` | DAG principal - dépendances des tâches |
-| `spark_jobs/config.py` | Configuration centralisée |
-| `spark_jobs/job_extract.py` | Logique d'extraction |
-| `spark_jobs/job_transform.py` | Logique de transformation |
-| `spark_jobs/job_aggregate.py` | Logique d'agrégation |
-| `infra/init-postgres.sql` | Schéma PostgreSQL |
-| `infra/docker-compose.yml` | Services Docker |
+| File                          | Description                    |
+| ----------------------------- | ------------------------------ |
+| `dags/rne_pipeline.py`        | Main DAG and task dependencies |
+| `spark_jobs/config.py`        | Centralized configuration      |
+| `spark_jobs/job_extract.py`   | Extraction logic               |
+| `spark_jobs/job_transform.py` | Transformation logic           |
+| `spark_jobs/job_aggregate.py` | Aggregation logic              |
+| `infra/init-postgres.sql`     | PostgreSQL schema              |
+| `infra/docker-compose.yml`    | Docker services                |
 
-##  Dépannage
+## Troubleshooting
 
-### Les services ne démarrent pas
+### Services do not start
+
 ```bash
-docker-compose logs  # Voir les logs
-docker-compose down  # Réinitialiser
-docker-compose up --build  # Reconstruire les images
+docker-compose logs
+docker-compose down
+docker-compose up --build
 ```
 
-### PostgreSQL dit "connection refused"
-Attendez 30 secondes que PostgreSQL soit prêt:
+### PostgreSQL says "connection refused"
+
+Wait around 30 seconds for PostgreSQL to become ready:
+
 ```bash
-docker-compose ps  # Vérifier que le service est "Up"
+docker-compose ps
 ```
 
-### Airflow ne trouve pas les DAGs
+Make sure the service status is `Up`.
+
+### Airflow cannot find the DAGs
+
 ```bash
-docker-compose restart airflow  # Redémarrer Airflow
+docker-compose restart airflow
 ```
 
-### Les jobs Spark échouent
-- Vérifiez les logs dans l'UI Airflow
-- Vérifiez l'espace disque: `df -h`
-- Vérifiez les permissions HDFS
+### Spark jobs fail
 
-### Je ne vois pas les données après l'extraction
+* Check the logs in the Airflow UI
+* Check available disk space:
+
+```bash
+df -h
+```
+
+* Verify HDFS permissions
+
+### Data is missing after extraction
+
 ```sql
 SELECT * FROM rne.elus_deputes_dep LIMIT 5;
 ```
-Si vide → relancer `migrate_csv_to_postgres.py`
 
-## Documentation supplémentaire
+If the table is empty, rerun:
 
-Voir `enonce_tp/tp_etudiant.pdf` pour:
-- Énoncé détaillé des exercices
-- Questions à répondre
-- Critères d'évaluation
-- Cas d'usage et requêtes SQL
+```bash
+migrate_csv_to_postgres.py
+```
 
-##  Conseils utiles
+## Additional Documentation
 
-1. **Examinez les données**: Utilisez Jupyter pour explorer les données avant de les traiter
-2. **Commencez petit**: Testez vos transformations sur un sous-ensemble avant de traiter tout
-3. **Logs**: Consultez les logs Airflow pour déboguer les jobs
-4. **Schéma**: Imprimez le schéma des DataFrames pour comprendre la structure
-5. **Performance**: Utilisez `explain()` pour analyser les plans d'exécution Spark
+See `enonce_tp/tp_etudiant.pdf` for:
 
-##  Objectifs du TP
+* Detailed exercise instructions
+* Questions to answer
+* Evaluation criteria
+* Use cases and SQL queries
 
-À la fin de ce TP, vous devriez savoir:
+## Useful Tips
 
-* Construire un pipeline ETL complet avec Spark  
-* Orchestrer des jobs avec Airflow  
-* Intégrer PostgreSQL et HDFS  
-* Transformer et agréger des données à grande échelle  
-* Monitorer et déboguer des pipelines en production  
+1. **Inspect the data:** Use Jupyter to explore the datasets before processing them.
+2. **Start small:** Test transformations on a subset before processing the full dataset.
+3. **Use logs:** Check Airflow logs when debugging jobs.
+4. **Inspect schemas:** Print DataFrame schemas to understand the structure.
+5. **Performance:** Use `explain()` to analyze Spark execution plans.
+
+## Learning Objectives
+
+By the end of this lab, you should be able to:
+
+* Build a complete ETL pipeline with Spark
+* Orchestrate jobs with Airflow
+* Integrate PostgreSQL and HDFS
+* Transform and aggregate large-scale datasets
+* Monitor and debug production data pipelines
 
 ## Support
 
-En cas de problème:
-1. Consultez les logs: `docker-compose logs <service>`
-2. Vérifiez la configuration dans `config.py`
-3. Relancez le service concerné
-4. Demandez à l'instructeur
+If you encounter a problem:
 
----
+1. Check the logs:
 
-**Bon TP ! **
+```bash
+docker-compose logs <service>
+```
+
+2. Verify the configuration in `config.py`
+3. Restart the relevant service
+4. Ask the instructor for help
+
+**Good luck with the lab!**
